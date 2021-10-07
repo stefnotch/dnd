@@ -1,6 +1,7 @@
 use ntapi::{ntzwapi::ZwUpdateWnfStateData, winapi::shared::ntdef::WNF_STATE_NAME};
-use regex::Regex;
 use std::{ptr, thread, time::Duration};
+
+use crate::time_parsing::parse_time;
 
 mod time_parsing;
 
@@ -8,30 +9,11 @@ fn main() {
     // Relies on some stuff being enabled in the focus mode settings
     // (Game or fullscreen, not sure)
 
-    // TODO: Parse command line args (time and project)
-
     println!("{:?}", std::env::args());
-
-    // Time parsing rules
-    // By default, assume minutes
-    // Valid suffixes (case insensitive, no space allowed)
-    // s|sec|second|seconds
-    // m|min|minute|minutes
-    // h|hour|hours
-    let time_pattern = Regex::new(r"(?P<value>[-]?[0-9]+)(?P<unit>[a-zA-Z]*)").unwrap();
 
     let time_arg = std::env::args().nth(1);
     let time_in_seconds = match &time_arg {
-        Some(time) => {
-            if let Some(time_pattern_match) = time_pattern.captures(time.trim()) {
-                let number_value = (&time_pattern_match["value"]).parse::<i32>();
-                let unit = &time_pattern_match["unit"];
-                if unit.is_empty() {}
-                Duration::from_secs(0)
-            } else {
-                Duration::from_secs(0)
-            }
-        }
+        Some(time) => parse_time(time),
         _ => Duration::from_secs(0),
     };
 
