@@ -1,32 +1,48 @@
+use chrono::{Duration, Local};
+use flexi_logger::{Duplicate, FileSpec, Logger, WriteMode};
 use ntapi::{ntzwapi::ZwUpdateWnfStateData, winapi::shared::ntdef::WNF_STATE_NAME};
-use std::{ptr, thread, time::Duration};
+use std::{path::PathBuf, process::Command, ptr, thread};
 
 use crate::time_parsing::parse_time;
 
+mod task_scheduling;
 mod time_parsing;
 
-fn main() {
-    // Relies on some stuff being enabled in the focus mode settings
-    // (Game or fullscreen, not sure)
+const SCHEDULED_TASK_NAME: &str = "DoNotDisturbEnd";
 
-    println!("{:?}", std::env::args());
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let _logger = Logger::try_with_str("trace")?
+        .log_to_file(FileSpec::default())
+        .write_mode(WriteMode::BufferAndFlush)
+        .duplicate_to_stderr(Duplicate::Warn)
+        .start()?;
 
+    // Parse time
     let time_arg = std::env::args().nth(1);
     let time_in_seconds = match &time_arg {
         Some(time) => parse_time(time),
-        _ => Duration::from_secs(0),
+        _ => Duration::seconds(0),
     };
 
-    // Everything after that is the project name
+    // Parse project name
     let project_name_arg = std::env::args().skip(2).collect::<String>();
 
-    // Nice output:
-    print!("Working on {}", project_name_arg);
-    if let Some(time_text) = time_arg {
-        print!(" for {}", time_text);
+    // Output info
+    let time_text = time_arg
+        .map(|v| format!("for {}.", v))
+        .unwrap_or("".to_string());
+    log::info!("Working on {} {}", project_name_arg, time_text);
+
+    if time_in_seconds >= Duration::seconds(1) {
+        task_scheduling::schedule_run_self(time_in_seconds);
     }
 
+    return Ok(());
     // TODO: Log every invocation of this including the command line args
+    // println!("{:?}", std::env::args());
+
+    // TODO: If no args, then turn it off
+    // If args, then turn it on & schedule the task
 
     // Taken from https://github.com/googleprojectzero/sandbox-attacksurface-analysis-tools/blob/80d7fcc8df9c3160c814c60f5121ae46c560a1b5/NtApiDotNet/NtWnfWellKnownNames.cs#L865
     // WNF_SHEL_QUIET_MOMENT_SHELL_MODE_CHANGED
@@ -68,7 +84,7 @@ fn main() {
         }
 
         // This is a hack. But so is the rest
-        thread::sleep(Duration::from_millis(1000));
+        thread::sleep(std::time::Duration::from_millis(1000));
 
         let enable_focus_mode_command_status = wnf_update_state(
             &mut wnf_shel_quiet_moment_shell_mode_changed,
@@ -84,4 +100,6 @@ fn main() {
             )
         }
     }
+
+    Ok(())
 }
