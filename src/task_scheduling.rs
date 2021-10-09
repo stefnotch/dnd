@@ -18,7 +18,7 @@ pub fn schedule_run_self(after: Duration) {
         .args(["/Delete", "/TN", SCHEDULED_TASK_NAME, "/F"])
         .output();
 
-    log::debug!("{:?}", cleanup_output);
+    log::debug!("Clean up old task: {:?}", cleanup_output);
 
     let path_to_self = std::env::current_exe()
         .ok()
@@ -29,7 +29,6 @@ pub fn schedule_run_self(after: Duration) {
     let local_time = Local::now();
     let end_time = local_time + after.max(Duration::minutes(1));
 
-    log::trace!("End time: {}", &end_time.format("%H:%M").to_string());
     let create_output = Command::new(task_scheduler)
         .args([
             "/Create",
@@ -44,5 +43,9 @@ pub fn schedule_run_self(after: Duration) {
         ])
         .output();
 
-    log::debug!("{:?}", create_output);
+    log::debug!(
+        "Creating new task at {} outputted {:?}",
+        &end_time.format("%H:%M").to_string(),
+        create_output
+    );
 }

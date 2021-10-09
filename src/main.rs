@@ -22,7 +22,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     // Parse project name
-    let project_name_arg = std::env::args().skip(2).collect::<String>();
+    let project_name_arg = std::env::args().skip(2).collect::<Vec<String>>().join(" ");
 
     // Output info
     let time_text = time_arg
