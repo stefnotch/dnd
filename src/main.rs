@@ -8,8 +8,17 @@ mod task_scheduling;
 mod time_parsing;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let mut log_file_spec = FileSpec::default().suppress_timestamp();
+
+    // Always log nex to the .exe
+    if let Some(mut path_to_exe) = std::env::current_exe().ok() {
+        path_to_exe.pop();
+        log_file_spec = log_file_spec.directory(path_to_exe);
+    }
+
     let _logger = Logger::try_with_str("trace")?
-        .log_to_file(FileSpec::default())
+        .log_to_file(log_file_spec)
+        .append()
         .write_mode(WriteMode::BufferAndFlush)
         .duplicate_to_stderr(Duplicate::Warn)
         .start()?;
@@ -37,5 +46,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         set_focus_mode(false);
     }
 
+    let _keep_logger_alive = _logger;
     Ok(())
 }
